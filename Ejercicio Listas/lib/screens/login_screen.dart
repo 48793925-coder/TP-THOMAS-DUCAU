@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,13 +14,34 @@ class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
-  // Lista de usuarios hardcodeada
-  final Map<String, String> usuariosValidos = {
+  // Lista de usuarios hardcodeada (se puede extender con usuarios guardados)
+  Map<String, String> usuariosValidos = {
     'user': 'user123',
     'adm': 'adm123',
     'laika@gmail.com': 'pizza123',
     'thomas@gmail.com': '12345'
   };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStoredUsers();
+  }
+
+  Future<void> _loadStoredUsers() async {
+    final prefs = await SharedPreferences.getInstance();
+    final str = prefs.getString('users');
+    if (str != null && str.isNotEmpty) {
+      try {
+        final Map<String, dynamic> decoded = json.decode(str);
+        setState(() {
+          usuariosValidos.addAll(decoded.map((k, v) => MapEntry(k, v.toString())));
+        });
+      } catch (_) {
+        // ignore malformed data
+      }
+    }
+  }
 
   String? errorEmail;
   String? errorPassword;
@@ -50,6 +73,12 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     });
+  }
+
+  Future<void> _openRegister() async {
+    // Navegar a la pantalla de registro; al volver recargar usuarios guardados
+    await context.push('/sign_in');
+    await _loadStoredUsers();
   }
 
   @override
@@ -136,6 +165,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 "Ingresar",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
               ),
+            ),
+            const SizedBox(height: 12),
+            const Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('¿No tienes cuenta?'),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: _openRegister,
+                  child: const Text('Registrarse'),
+                ),
+              ],
             ),
           ],
         ),

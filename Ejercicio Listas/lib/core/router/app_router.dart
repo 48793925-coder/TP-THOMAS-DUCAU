@@ -1,8 +1,9 @@
 import 'package:go_router/go_router.dart';
-import 'package:tp3/screens/login_screen.dart';
-import 'package:tp3/screens/home_screen.dart';
-import 'package:tp3/screens/detail_screen.dart';
-import 'package:tp3/core/router/entities/item.dart';
+import 'package:tp4/screens/login_screen.dart';
+import 'package:tp4/screens/home_screen.dart';
+import 'package:tp4/screens/sign_in_screen.dart';
+import 'package:tp4/screens/detail_screen.dart';
+import 'package:tp4/core/router/entities/item.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/login',
@@ -14,6 +15,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/home', 
       builder: (context, state) => HomeScreen(username: state.extra as String),
+    ),
+    GoRoute(
+      path: '/sign_in',
+      builder: (context, state) => const SignInScreen(),
     ),
     GoRoute(
       path: '/detail', 

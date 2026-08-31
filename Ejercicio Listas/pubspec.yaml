@@ -1,4 +1,4 @@
-name: tp3
+name: tp4
 description: "A new Flutter project."
 publish_to: 'none'
 version: 0.1.0+1
@@ -11,6 +11,7 @@ dependencies:
     sdk: flutter
   flutter_riverpod: ^3.3.2
   go_router: ^17.2.3
+  shared_preferences: ^2.2.0
 
 dev_dependencies:
   flutter_test:

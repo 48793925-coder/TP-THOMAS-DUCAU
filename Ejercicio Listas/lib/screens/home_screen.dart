@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:tp3/core/router/entities/item.dart';
+import 'package:tp4/core/router/entities/item.dart';
+import 'package:tp4/screens/edit_screen.dart';
+import 'package:tp4/screens/detail_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   final String username;
 
   const HomeScreen({super.key, required this.username});
 
   @override
-  Widget build(BuildContext context) {
-    final List<Item> items = [
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late List<Item> items;
+
+  @override
+  void initState() {
+    super.initState();
+    items = [
       Item(
         name: 'Feijoada',
         origin: 'Brasil',
@@ -69,12 +79,28 @@ class HomeScreen extends StatelessWidget {
         origin: 'Perú',
         rating: 4.8,
         description: 'Plato de pescado crudo marinado en jugo de limón, acompañado de cebolla, ají y cilantro.',
-        imageUrl: 'https://images.unsplash.com/photo-1626200419199-391ae4be7a41?w=800',
+        imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJ5IzF2akTbFJQdz_6FOyj27_yCxYQ9ADtMUkuTXdxlyNiU8YAOB_eZwY&s=10',
         ingredients: ['Pescado fresco', 'Jugo de limón', 'Cebolla roja'],
         accompaniments: ['Camote', 'Choclo'],
       ),
     ];
+  }
 
+  Future<void> _openAddScreen() async {
+    final result = await Navigator.of(context).push<Item>(
+      MaterialPageRoute(builder: (_) => const EditScreen()),
+    );
+    if (result != null) {
+      setState(() {
+        items.insert(0, result);
+      });
+    }
+  }
+
+  // Editing is handled from the Detail screen now.
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F4F8),
       appBar: AppBar(
@@ -97,7 +123,7 @@ class HomeScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             color: Colors.blueAccent.withAlpha((0.12 * 255).round()),
             child: Text(
-              '¡Bienvenido, $username!',
+              '¡Bienvenido, ${widget.username}!',
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -154,16 +180,29 @@ class HomeScreen extends StatelessWidget {
                         height: 1.4,
                       ),
                     ),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {
-                      context.push('/detail', extra: item);
-                    },
+                    trailing: IconButton(
+                      icon: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onPressed: () async {
+                        final result = await Navigator.of(context).push<Item>(
+                          MaterialPageRoute(builder: (_) => DetailScreen(item: item)),
+                        );
+                        if (result != null) {
+                          setState(() {
+                            items[index] = result;
+                          });
+                        }
+                      },
+                    ),
                   ),
                 );
               },
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openAddScreen,
+        child: const Icon(Icons.add),
       ),
     );
   }
