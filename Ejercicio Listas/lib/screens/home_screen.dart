@@ -180,18 +180,56 @@ class _HomeScreenState extends State<HomeScreen> {
                         height: 1.4,
                       ),
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onPressed: () async {
-                        final result = await Navigator.of(context).push<Item>(
-                          MaterialPageRoute(builder: (_) => DetailScreen(item: item)),
-                        );
-                        if (result != null) {
-                          setState(() {
-                            items[index] = result;
-                          });
-                        }
-                      },
+                    trailing: SizedBox(
+                      width: 96,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Eliminar plato'),
+                                  content: Text('¿Eliminar "${item.name}"?'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.of(ctx).pop(false),
+                                      child: const Text('Cancelar'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.of(ctx).pop(true),
+                                      child: const Text('Eliminar'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirm == true) {
+                                setState(() {
+                                  items.removeAt(index);
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Plato eliminado')),
+                                );
+                              }
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.arrow_forward_ios, size: 16),
+                            onPressed: () async {
+                              final result = await Navigator.of(context).push<Item>(
+                                MaterialPageRoute(builder: (_) => DetailScreen(item: item)),
+                              );
+                              if (result != null) {
+                                setState(() {
+                                  items[index] = result;
+                                });
+                              }
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
