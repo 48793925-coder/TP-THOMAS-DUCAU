@@ -1,103 +1,127 @@
-import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 
-class LoginScreen extends StatefulWidget {
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import '../providers/auth_providers.dart';
+
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-
-  // Lista de usuarios hardcodeada (se puede extender con usuarios guardados)
-  Map<String, String> usuariosValidos = {
-    'user': 'user123',
-    'adm': 'adm123',
-    'laika@gmail.com': 'pizza123',
-    'thomas@gmail.com': '12345'
-  };
-
-  @override
-  void initState() {
-    super.initState();
-    _loadStoredUsers();
-  }
-
-  Future<void> _loadStoredUsers() async {
-    final prefs = await SharedPreferences.getInstance();
-    final str = prefs.getString('users');
-    if (str != null && str.isNotEmpty) {
-      try {
-        final Map<String, dynamic> decoded = json.decode(str);
-        setState(() {
-          usuariosValidos.addAll(decoded.map((k, v) => MapEntry(k, v.toString())));
-        });
-      } catch (_) {
-        // ignore malformed data
-      }
-    }
-  }
 
   String? errorEmail;
   String? errorPassword;
   String? errorLogin;
 
-  void validar() {
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> validar() async {
     setState(() {
       errorEmail = null;
       errorPassword = null;
       errorLogin = null;
-
-      String email = emailController.text.trim();
-      String password = passwordController.text;
-
-      if (email.isEmpty) {
-        errorEmail = "Ingresa tu usuario o email";
-      }
-
-      if (password.isEmpty) {
-        errorPassword = "Ingresa tu contraseña";
-      }
-
-      if (errorEmail == null && errorPassword == null) {
-        if (usuariosValidos[email] == password) {
-          // Uso de GoRouter para navegar a Home
-          context.go('/home', extra: email);
-        } else {
-          errorLogin = "Usuario o contraseña incorrectos";
-        }
-      }
     });
+
+    final email = emailController.text.trim();
+    final password = passwordController.text;
+
+    if (email.isEmpty) {
+      setState(() => errorEmail = 'Ingresa tu email');
+    } else if (!RegExp(
+      r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+    ).hasMatch(email)) {
+      setState(() => errorEmail = 'Ingresa un email válido');
+    }
+
+    if (password.isEmpty) {
+      setState(() => errorPassword = 'Ingresa tu contraseña');
+    }
+
+    if (errorEmail != null || errorPassword != null) {
+      return;
+    }
+
+    try {
+      await ref.read(authControllerProvider.notifier).login(
+        email: email,
+        password: password,
+      );
+
+      if (!mounted) return;
+
+      context.go('/home');
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+
+      setState(() => errorLogin = _getErrorMessage(e));
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        errorLogin = 'No se pudo iniciar sesión. Intentá nuevamente.';
+      });
+    }
   }
 
-  Future<void> _openRegister() async {
-    // Navegar a la pantalla de registro; al volver recargar usuarios guardados
-    await context.push('/sign_in');
-    await _loadStoredUsers();
+  String _getErrorMessage(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-email':
+        return 'El email no tiene un formato válido.';
+
+      case 'invalid-credential':
+      case 'wrong-password':
+      case 'user-not-found':
+        return 'El email o la contraseña son incorrectos.';
+
+      case 'user-disabled':
+        return 'Esta cuenta está deshabilitada.';
+
+      case 'too-many-requests':
+        return 'Demasiados intentos. Probá más tarde.';
+
+      case 'network-request-failed':
+        return 'No se pudo conectar. Revisá tu conexión.';
+
+      default:
+        return 'No se pudo iniciar sesión.';
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = ref.watch(authControllerProvider).isLoading;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Iniciar sesión"),
+        title: const Text('Iniciar sesión'),
         backgroundColor: const Color(0xFF1E88E5),
         elevation: 1,
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 20,
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              "Bienvenido",
+              'Bienvenido',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 26,
@@ -105,76 +129,82 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(height: 22),
+
             TextField(
               controller: emailController,
+              keyboardType: TextInputType.emailAddress,
               decoration: InputDecoration(
-                labelText: "Usuario o Email",
+                labelText: 'Email',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(width: 1.3),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(width: 1.8),
-                ),
                 errorText: errorEmail,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 18,
+                ),
               ),
             ),
+
             const SizedBox(height: 16),
+
             TextField(
               controller: passwordController,
               obscureText: true,
               decoration: InputDecoration(
-                labelText: "Contraseña",
+                labelText: 'Contraseña',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(width: 1.3),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(width: 1.8),
-                ),
                 errorText: errorPassword,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 18,
+                ),
               ),
             ),
+
             const SizedBox(height: 12),
+
             if (errorLogin != null)
               Text(
                 errorLogin!,
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.red),
               ),
+
             const SizedBox(height: 18),
+
             ElevatedButton(
-              onPressed: validar,
+              onPressed: isLoading ? null : validar,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Text(
-                "Ingresar",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-              ),
+              child: isLoading
+                  ? const CircularProgressIndicator()
+                  : const Text(
+                      'Ingresar',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
             ),
+
             const SizedBox(height: 12),
+
             const Spacer(),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text('¿No tienes cuenta?'),
                 const SizedBox(width: 8),
                 TextButton(
-                  onPressed: _openRegister,
+                  onPressed: () => context.push('/sign_in'),
                   child: const Text('Registrarse'),
                 ),
               ],

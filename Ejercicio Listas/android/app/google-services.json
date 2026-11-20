@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1027426775151",
+    "project_id": "tp-firebase-dap-8915d",
+    "storage_bucket": "tp-firebase-dap-8915d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1027426775151:android:d19dc91289ba1191e39d9a",
+        "android_client_info": {
+          "package_name": "com.example.tp1_login_thiago_ducau"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0Tr15IssOBqz0wPrGa6keyWoU0dL9xlA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
