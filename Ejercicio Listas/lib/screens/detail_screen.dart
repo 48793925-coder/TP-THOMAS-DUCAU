@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:tp4/core/router/entities/item.dart';
 import 'package:tp4/screens/edit_screen.dart';
@@ -5,7 +6,10 @@ import 'package:tp4/screens/edit_screen.dart';
 class DetailScreen extends StatefulWidget {
   final Item item;
 
-  const DetailScreen({super.key, required this.item});
+  const DetailScreen({
+    super.key,
+    required this.item,
+  });
 
   @override
   State<DetailScreen> createState() => _DetailScreenState();
@@ -14,6 +18,7 @@ class DetailScreen extends StatefulWidget {
 class _DetailScreenState extends State<DetailScreen> {
   late Item _current;
   bool _changed = false;
+  bool _allowPop = false;
 
   @override
   void initState() {
@@ -21,18 +26,22 @@ class _DetailScreenState extends State<DetailScreen> {
     _current = widget.item;
   }
 
-  Future<bool> _onWillPop() async {
-    if (_changed) {
-      Navigator.of(context).pop(_current);
-      return false;
-    }
-    return true;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope<Item>(
+      canPop: !_changed || _allowPop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop || !_changed || _allowPop) return;
+
+        setState(() {
+          _allowPop = true;
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          Navigator.of(context).pop<Item>(_current);
+        });
+      },
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -44,23 +53,25 @@ class _DetailScreenState extends State<DetailScreen> {
               icon: const Icon(Icons.edit),
               onPressed: () async {
                 final edited = await Navigator.of(context).push<Item>(
-                  MaterialPageRoute(builder: (_) => EditScreen(item: _current)),
+                  MaterialPageRoute(
+                    builder: (_) => EditScreen(item: _current),
+                  ),
                 );
-                if (edited != null) {
+
+                if (edited != null && mounted) {
                   setState(() {
                     _current = edited;
                     _changed = true;
                   });
                 }
               },
-            )
+            ),
           ],
         ),
         body: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // IMAGEN SUPERIOR
               Image.network(
                 _current.imageUrl,
                 height: 280,
@@ -74,22 +85,30 @@ class _DetailScreenState extends State<DetailScreen> {
                     child: const Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.image_not_supported, size: 60, color: Colors.grey),
+                        Icon(
+                          Icons.image_not_supported,
+                          size: 60,
+                          color: Colors.grey,
+                        ),
                         SizedBox(height: 10),
-                        Text('Imagen no disponible', style: TextStyle(color: Colors.grey)),
+                        Text(
+                          'Imagen no disponible',
+                          style: TextStyle(color: Colors.grey),
+                        ),
                       ],
                     ),
                   );
                 },
               ),
 
-              // CONTENIDO INFORMATIVO
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 18.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 18,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Título principal
                     Text(
                       _current.name,
                       style: const TextStyle(
@@ -97,20 +116,28 @@ class _DetailScreenState extends State<DetailScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
                     const SizedBox(height: 8),
-
-                    // Información de País y Puntuación
                     Row(
                       children: [
-                        const Icon(Icons.location_on, color: Colors.blueAccent, size: 20),
+                        const Icon(
+                          Icons.location_on,
+                          color: Colors.blueAccent,
+                          size: 20,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           _current.origin,
-                          style: const TextStyle(fontSize: 16, color: Colors.grey),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
                         ),
                         const SizedBox(width: 16),
-                        const Icon(Icons.star, color: Colors.amber, size: 20),
+                        const Icon(
+                          Icons.star,
+                          color: Colors.amber,
+                          size: 20,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           _current.rating.toString(),
@@ -121,13 +148,10 @@ class _DetailScreenState extends State<DetailScreen> {
                         ),
                       ],
                     ),
-
                     const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 18.0),
+                      padding: EdgeInsets.symmetric(vertical: 18),
                       child: Divider(),
                     ),
-
-                    // Sección: Descripción
                     const Text(
                       'Acerca de este plato',
                       style: TextStyle(
@@ -145,10 +169,7 @@ class _DetailScreenState extends State<DetailScreen> {
                         color: Colors.black87,
                       ),
                     ),
-
                     const SizedBox(height: 24),
-
-                    // Sección: Ingredientes
                     const Text(
                       'Ingredientes',
                       style: TextStyle(
@@ -158,22 +179,21 @@ class _DetailScreenState extends State<DetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    // Generamos la lista de ingredientes dinámicamente
                     ..._current.ingredients.map((ingrediente) {
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         dense: true,
-                        leading: const Icon(Icons.kitchen, color: Colors.blueAccent),
+                        leading: const Icon(
+                          Icons.kitchen,
+                          color: Colors.blueAccent,
+                        ),
                         title: Text(
                           ingrediente,
                           style: const TextStyle(fontSize: 16),
                         ),
                       );
                     }),
-
                     const SizedBox(height: 20),
-
-                    // Sección: Sugerencias / Acompañamientos
                     const Text(
                       'Sugerencias',
                       style: TextStyle(
@@ -183,19 +203,20 @@ class _DetailScreenState extends State<DetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    // Generamos la lista de comidas dinámicamente
                     ..._current.accompaniments.map((comida) {
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         dense: true,
-                        leading: const Icon(Icons.restaurant, color: Colors.orange),
+                        leading: const Icon(
+                          Icons.restaurant,
+                          color: Colors.orange,
+                        ),
                         title: Text(
                           comida,
                           style: const TextStyle(fontSize: 16),
                         ),
                       );
                     }),
-
                     const SizedBox(height: 20),
                   ],
                 ),
